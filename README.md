@@ -18,6 +18,7 @@ The rapid advancement of Large Multimodal Models (LMMs) for 2D images and videos
 
 ## 📰 News
 
+- **2025-06-12:** Added inference script for multi-image inputs.
 - **2025-06-11:** We have released the training/evaluation scripts and all associated data.
   - The main instruction tuning dataset, which includes training data for VSiBench and VSTiBench, is available on Hugging Face at [Journey9ni/VLM-3R-DATA](https://huggingface.co/datasets/Journey9ni/VLM-3R-DATA).
   - The test set for VSTiBench can be found at [Journey9ni/vstibench](https://huggingface.co/datasets/Journey9ni/vstibench).
@@ -234,7 +235,33 @@ Please see the script for a full list of arguments. You will need to create the 
   }
 }
 ```
-After extracting the features, remember to update your training configuration to load these pre-computed features instead of processing raw videos.
+
+**How Pre-computed Features are Loaded:**
+
+The training script automatically detects and loads pre-computed features. Here's how it works:
+
+1. **Directory Structure**: Pre-computed features should follow this structure:
+   ```
+   your_data_folder/
+   ├── videos/
+   │   └── scene0191_00.mp4
+   └── spatial_features/
+       └── scene0191_00.pt
+   ```
+
+2. **Automatic Loading**: During training, the system automatically checks for pre-computed features by:
+   - Taking the video path from your data configuration
+   - Replacing `.mp4` with `.pt` and `videos` with `spatial_features`
+   - Loading the features if the file exists
+
+3. **No Configuration Needed**: You don't need to modify any configuration files. The training script (see `llava/train/train.py`, lines 1805-1808) handles this automatically:
+   ```python
+   spatial_features_path = os.path.join(video_folder, self.list_data_dict[i]['video'].replace('.mp4', '.pt').replace('videos', 'spatial_features'))
+   if os.path.exists(spatial_features_path):
+       spatial_features = torch.load(spatial_features_path)
+   ```
+
+This approach significantly speeds up training by avoiding redundant feature extraction during each epoch.
 
 Make sure to configure the paths to your video data, benchmark datasets, and desired model output directories within the script.
 
